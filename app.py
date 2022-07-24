@@ -15,6 +15,10 @@ mysql.init_app(app)
 conn = mysql.connect()
 cursor = conn.cursor()
 
+# GENERATE TABLE IF DOESN'T EXIST
+# Create user table
+cursor.execute("CREATE TABLE IF NOT EXISTS `users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext NOT NULL,`contact` varchar(8) DEFAULT '',`address` varchar(100) DEFAULT '',`face` tinyint DEFAULT '0',`faceImage` longtext,`points` int DEFAULT '0',PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+conn.commit()
 
 # FOR TESTING
 @app.route("/")
