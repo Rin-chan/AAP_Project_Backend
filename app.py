@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify
+# from crypt import methods
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, Response
 from flaskext.mysql import MySQL
 
 from models.faceVerification.siamese import generateDiss
-
+from models.imgClassification.imgClassification import classify_eWaste, reformat_predictions
 
 app = Flask(__name__)
 
@@ -20,10 +21,18 @@ cursor = conn.cursor()
 cursor.execute("CREATE TABLE IF NOT EXISTS `users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext NOT NULL,`contact` varchar(8) DEFAULT '',`address` varchar(100) DEFAULT '',`face` tinyint DEFAULT '0',`faceImage` longtext,`points` int DEFAULT '0',PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 conn.commit()
 
-# FOR TESTING
+# Web Pages Related
 @app.route("/")
-def main() -> str:
-    return "Hello World"
+def home():
+     return render_template('home.html')
+
+@app.route("/takePhoto")
+def takePhoto():
+     return render_template('takePhoto.html')
+
+@app.route("/aiResults")
+def aiResults():
+     return render_template('ai_Results.html')
 
 
 # AI Related
@@ -32,7 +41,13 @@ def faceVerification():
     input = request.get_json()
     result = generateDiss(input['originalFaceImage'], input['faceImage'])
     return jsonify(result=result)
+
+@app.route("/ImgClassification/<imgfilename>", methods=['POST'])
+def imgClassification(imgfilename):
+    predictions = classify_eWaste(imgfilename)
+    final_result = reformat_predictions(predictions)
     
+    return jsonify({"result": final_result})    
     
 # Database Related
 @app.route("/addUser/", methods=["POST"])
