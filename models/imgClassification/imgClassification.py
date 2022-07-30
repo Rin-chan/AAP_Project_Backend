@@ -9,9 +9,11 @@ import io
 
 model = tf.keras.models.load_model('models/imgClassification/imgClassification.h5')
 
-def classify_eWaste(img_filename):
-    # Retrieve image
-    img = load_img(img_filename, target_size=(128, 128))
+def classify_eWaste(filename):
+
+    filepath = 'static/img/'+filename
+    # Resize img
+    img = load_img(filepath, target_size=(128, 128))
     # Convert image to numpy array
     img_array = img_to_array(img)
     # Model expect data in batches so need to add in batch axis (,0)

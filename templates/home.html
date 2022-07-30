@@ -2,10 +2,14 @@
 {% block title %}Alba E-Waste{% endblock %}
 
 {% block content %}
-
+<style>
+    #btn {
+        margin: 2% 40%;
+    }
+</style>
 <div class="main_box">
     <h2 style="text-align: center;">Welcome! Click below to take photo of your item! :D</h2>
-    <a href="/takePhoto" ><button class="action_btn">Take Photo</button></a>
+    <a href="/takePhoto" ><button class="action_btn" id="btn">Take Photo</button></a>
 </div>
 
 {% endblock %}

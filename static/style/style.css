@@ -12,11 +12,25 @@
     font-size: 25px;
     color: white;
     text-align: center;
-    margin: 2% 40%;
     width: 20%;
     border: none;
 }
 
 .action_btn:hover {
     background-color: #3A92C1;
+}
+
+.danger_btn {
+    background-color: #E25B52;
+    padding: 10px 20px;
+    border-radius: 15px;
+    font-size: 25px;
+    color: white;
+    text-align: center;
+    width: 20%;
+    border: none;
+}
+
+.danger_btn:hover {
+    background-color: #AC5953;
 }

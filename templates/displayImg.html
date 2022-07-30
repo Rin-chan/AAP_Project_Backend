@@ -2,6 +2,7 @@
 {% block title %}Alba E-Waste{% endblock %}
 
 {% block content %}
+
 <style>
     .img {
         margin: 0 20%;
@@ -10,14 +11,17 @@
 
 <div class="main_box" style="margin-top: 5%">
     <div class="row">
-        <img src="{{ url_for('video_feed') }}" width="60%" height="480" class="img">
+        <img src="/static/img/{{image}}" width="60%" height="480" class="img">
     </div>
     <div class="row" style="margin-top: 2%;">
         <div class="col-md-12 text-center">
-            <a href="/"><button class="danger_btn" id="back_btn">Back</button></a>
-            <a href="/displayImg"><button class="action_btn">Take Photo</button></a>
+            <a href="/takePhoto"><button class="danger_btn">Retake</button></a>
+            <a href="/imgClassification/{{image}}"><button class="action_btn">Next</button></a>
         </div>
     </div>
+</div>
+
+
 </div>
 
 {% endblock %}

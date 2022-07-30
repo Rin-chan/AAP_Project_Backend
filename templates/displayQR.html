@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Alba E-Waste{% endblock %}
+
+{% block content %}
+
+<style>
+    .img {
+        margin: 0 42.5%;
+    }
+
+    #btn {
+        margin: 2% 40%;
+    }
+</style>
+
+<div class="main_box" style="margin-top: 5%">
+    <h2 style="text-align: center;">Thank you for throwing your e-waste to the correct bin :)</h2>
+    <h4 style="text-align: center;">Scan the QR code to collect your points</h4>
+    <img src="/static/qr/{{qr}}" width="15%" height="15%" class="img">
+    <a href="/" ><button class="action_btn" id="btn" >Thank you!</button></a>
+</div>
+
+{% endblock %}
