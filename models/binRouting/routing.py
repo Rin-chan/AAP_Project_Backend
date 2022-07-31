@@ -1,4 +1,5 @@
 # Importing Deep Q-learning agent from Keras-RL
+from cmath import inf
 from rl.agents.dqn import Agent
 
 # Using ORS service for distance
@@ -17,7 +18,6 @@ with open('secrets.json', 'r') as f:
     apiKey = json.load(f)
   
 client = openrouteservice.Client(key=apiKey["ORSKey"])
-
 
 class DeliveryEnvironment(object):
     def __init__(self, coords, distances, n_stops):
@@ -163,15 +163,24 @@ def run_episode(env,agent,coords):
     return env,agent,episode_reward
 
 def run_n_episodes(env,agent,coords,n_episodes=500):
-    rewards = []
+    global bestPath
+    global bestScore
 
     for i in range(n_episodes):
         env,agent,episode_reward = run_episode(env,agent,coords)
-        rewards.append(episode_reward)
+        
+        if bestScore < episode_reward:
+            bestScore = episode_reward
+            bestPath = env.pathDone()
 
     return env,agent
 
 def getPath(binResult):
+    global bestPath
+    global bestScore
+    bestPath = []
+    bestScore = -inf
+    
     coords = []
     
     for i in binResult:
@@ -187,6 +196,5 @@ def getPath(binResult):
     agent = DeliveryQAgent(env.observation_space,env.action_space)
     
     env,agent = run_n_episodes(env,agent,coords)
-    pathDone = env.pathDone()
-    pathDone.append(coords[0])
-    return pathDone
+    bestPath.append(coords[0])
+    return bestPath
