@@ -1,9 +1,20 @@
-from flask import Flask, request, jsonify, redirect, url_for, render_template
+
+# from crypt import methods
+from fileinput import filename
+from unittest import result
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, Response
 from flaskext.mysql import MySQL
 import random
 from Forms import ResetForm
 import yagmail
 import hashlib
+import logging
+
+from camera import gen_frames, capturePhoto, closeCamera
+from qr_generator import create_qr_code
+
+from models.faceVerification.siamese import generateDiss
+from models.imgClassification.imgClassification import classify_eWaste, reformat_predictions
 
 from models.faceVerification.siamese import generateDiss
 from models.binRouting.routing import getPath
@@ -14,6 +25,7 @@ server = yagmail.SMTP(email_username,email_password)
 flaskServer = "192.168.0.107:5000"
 
 app = Flask(__name__)
+app.config["CACHE_TYPE"] = "null"
 
 mysql = MySQL()
 app.config['MYSQL_DATABASE_USER'] = 'rin'
@@ -46,30 +58,30 @@ if (len(bin_num) == 0):
     conn.commit()
 
 # FOR TESTING
+# Web Pages Related
 @app.route("/")
-def main() -> str:
-    return "Hello World"
+def home():
+    closeCamera()
+    return render_template('home.html')
 
+@app.route("/takePhoto")
+def takePhoto():
+    return render_template('takePhoto.html')
 
-# AI Related
-@app.route("/faceVerification/", methods=['POST'])
-def faceVerification():
-    input = request.get_json()
-    result = generateDiss(input['originalFaceImage'], input['faceImage'])
-    return jsonify(result=result)
+@app.route('/video_feed')
+def video_feed():
+    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route("/routing/", methods=['POST'])
-def routing():
-    conn = mysql.connect()  # reconnecting mysql
-    with conn.cursor() as cursor:
-        cursor.execute('SELECT * FROM bins')
-        binResult = cursor.fetchall()
-        
-    result = getPath(binResult)
-    return jsonify(result=result)
-    
+@app.route('/displayImg')
+def displayImg():
+    filename = capturePhoto()
+    return render_template('displayImg.html', image=filename)
 
-# WEBSITE
+@app.route('/displayQR/<pred>')
+def displayQR(pred):
+    filename = create_qr_code(pred)
+    return render_template('displayQR.html', qr=filename)
+
 @app.route('/reset/<string:number>', methods=['GET', 'POST'])
 def reset(number):
     conn = mysql.connect()  # reconnecting mysql
@@ -116,6 +128,34 @@ def verified(number):
         return render_template('verified.html')
     return redirect(url_for('main'))
 
+# AI Related
+@app.route("/faceVerification/", methods=['POST'])
+def faceVerification():
+    input = request.get_json()
+    result = generateDiss(input['originalFaceImage'], input['faceImage'])
+    return jsonify(result=result)
+
+@app.route("/routing/", methods=['POST'])
+def routing():
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM bins')
+        binResult = cursor.fetchall()
+        
+    result = getPath(binResult)
+    return jsonify(result=result)
+
+@app.route("/imgClassification/<filename>")
+def imgClassification(filename):
+    predictions = classify_eWaste(filename)
+    print(predictions)
+    logging.info(predictions)
+    final_result = reformat_predictions(predictions)
+    print(final_result)
+    logging.info(final_result)
+    
+    return render_template('ai_Results.html', prediction=final_result)
+    
 # Database Related
 # Consumer App
 @app.route("/addUser/", methods=["POST"])
@@ -326,6 +366,20 @@ def updateStaffBins():
         cursor.execute('UPDATE bins SET selected = "{1}" WHERE id = "{0}"'.format(bin["id"], bin["selected"]))
         conn.commit()
         
+    return "Done"
+
+@app.route("/getUserPoints/", methods=["POST"])
+def getUserPoints():
+    user = request.get_json()
+    cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
+    result = cursor.fetchall()
+    return jsonify(result=result)
+
+@app.route("/updateUserPoints/", methods=["POST"])
+def updateUserPoints():
+    user = request.get_json()
+    cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
+    conn.commit()
     return "Done"
 
     

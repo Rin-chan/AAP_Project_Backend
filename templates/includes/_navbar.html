@@ -1,0 +1,33 @@
+<style>
+    .navbar-custom {
+        background-color: white;
+        box-shadow: 0 0px 8px rgb(0 0 0 / 0.2);
+        height: 10%;
+    }
+
+    .navbar-custom .navbar-brand {
+        font-family: Lucida Handwriting, Brush Script MT;
+        color: white;
+        font-size: 42px;
+    }
+
+    .navbar-custom .navbar-text {
+        color: white;
+    }
+
+    .navbar-logo {
+        margin:auto;
+        height: 10%;
+    }
+
+    #img {
+        padding: 5px;
+    }
+
+</style>
+
+    <nav class="navbar navbar-expand-sm navbar-custom">
+      <!-- Brand -->
+      <a class="navbar-logo" href="/"><img id="img" src="{{url_for('static',filename = 'img/albaLogo.png')}}" alt="Not working" height="35px" width="100%"/></a>
+
+    </nav>

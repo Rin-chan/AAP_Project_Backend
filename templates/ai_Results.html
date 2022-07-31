@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Alba E-Waste{% endblock %}
+
+{% block content %}
+<style>
+    #btn {
+        margin: 2% 40%;
+    }
+</style>
+<div class="main_box">
+     {% if prediction == 'non-regulated' %}
+    <h2 style="text-align: center;">
+        Your item is {{prediction}}! You can't throw this into the bin :(
+    </h2>
+    <a href="/" ><button class="danger_btn"  id="btn">End Session</button></a>
+
+    {% else %}
+    <h2 style="text-align: center;">
+        Your item is {{prediction}} and its regulated! You can throw this into the bin :D
+    </h2>
+    <h4 style="text-align:center;">Click the button below after throwing</h4>
+    <a href="/displayQR/{{prediction}}" ><button class="action_btn" id="btn">Close Bin</button></a>
+    {% endif %}
+</div>
+
+{% endblock %}

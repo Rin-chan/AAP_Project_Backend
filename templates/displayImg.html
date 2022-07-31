@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Alba E-Waste{% endblock %}
+
+{% block content %}
+
+<style>
+    .img {
+        margin: 0 20%;
+    }
+</style>
+
+<div class="main_box" style="margin-top: 5%">
+    <div class="row">
+        <img src="/static/img/{{image}}" width="60%" height="480" class="img">
+    </div>
+    <div class="row" style="margin-top: 2%;">
+        <div class="col-md-12 text-center">
+            <a href="/takePhoto"><button class="danger_btn">Retake</button></a>
+            <a href="/imgClassification/{{image}}"><button class="action_btn">Next</button></a>
+        </div>
+    </div>
+</div>
+
+
+</div>
+
+{% endblock %}
