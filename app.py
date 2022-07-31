@@ -1,9 +1,17 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect, url_for, render_template
 from flaskext.mysql import MySQL
+import random
+from Forms import ResetForm
+import yagmail
+import hashlib
 
 from models.faceVerification.siamese import generateDiss
 from models.binRouting.routing import getPath
 
+email_username = "appdevproto123@gmail.com"
+email_password = "hocbwonzwnxplmlo"
+server = yagmail.SMTP(email_username,email_password)
+flaskServer = "192.168.0.107:5000"
 
 app = Flask(__name__)
 
@@ -17,9 +25,11 @@ conn = mysql.connect()
 cursor = conn.cursor()
 
 # GENERATE TABLE IF DOESN'T EXIST
-cursor.execute("CREATE TABLE IF NOT EXISTS `users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext NOT NULL,`contact` varchar(8) DEFAULT '',`address` varchar(100) DEFAULT '',`face` tinyint DEFAULT '0',`faceImage` longtext,`points` int DEFAULT '0',PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
-cursor.execute("CREATE TABLE IF NOT EXISTS `staff_users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext,`contact` varchar(8) DEFAULT '',`address` varchar(100) DEFAULT '',`face` tinyint DEFAULT '0',`faceImage` longtext,`points` int DEFAULT '0',`disabled` tinyint DEFAULT '0',`verified` tinyint DEFAULT '0',PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `staff_users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext NOT NULL,`type` int DEFAULT '0',`disabled` tinyint DEFAULT '0',PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `bins` (`id` int NOT NULL AUTO_INCREMENT,`location` varchar(100) NOT NULL,`capacity` varchar(100) NOT NULL,`selected` tinyint DEFAULT '0',`x` varchar(100),`y` varchar(100),PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `reset_password` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`number` int NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `email_verification` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`number` int NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 conn.commit()
 
 # GENERATE DATA FOR BINS
@@ -50,12 +60,62 @@ def faceVerification():
 
 @app.route("/routing/", methods=['POST'])
 def routing():
-    cursor.execute('SELECT * FROM bins')
-    binResult = cursor.fetchall()
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM bins')
+        binResult = cursor.fetchall()
+        
     result = getPath(binResult)
     return jsonify(result=result)
     
-    
+
+# WEBSITE
+@app.route('/reset/<string:number>', methods=['GET', 'POST'])
+def reset(number):
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM reset_password WHERE number = "{0}"'.format(int(number)))
+        result = cursor.fetchall()
+
+    if len(result) != 0:
+        resetForm = ResetForm(request.form)
+        if request.method == 'POST' and resetForm.validate():
+            hashed_password = hashlib.sha256(resetForm.password.data.encode('utf-8')).hexdigest()
+            conn = mysql.connect()  # reconnecting mysql
+            with conn.cursor() as cursor:
+                cursor.execute('UPDATE users SET password = "{0}" WHERE email = "{1}"'.format(hashed_password, result[0][1]))
+                conn.commit()
+                
+            conn = mysql.connect()  # reconnecting mysql
+            with conn.cursor() as cursor:
+                cursor.execute('DELETE FROM reset_password WHERE number = "{0}"'.format(int(number)))
+                conn.commit()
+                
+            return redirect(url_for('main'))
+        return render_template('reset.html', form=resetForm)
+    return redirect(url_for('main'))
+
+@app.route('/verified/<string:number>', methods=['GET', 'POST'])
+def verified(number):
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM email_verification WHERE number = "{0}"'.format(int(number)))
+        result = cursor.fetchall()
+
+    if len(result) != 0:
+        conn = mysql.connect()  # reconnecting mysql
+        with conn.cursor() as cursor:
+            cursor.execute('UPDATE users SET verified = "1" WHERE email = "{0}"'.format(result[0][1]))
+            conn.commit()
+                
+        conn = mysql.connect()  # reconnecting mysql
+        with conn.cursor() as cursor:
+            cursor.execute('DELETE FROM email_verification WHERE number = "{0}"'.format(int(number)))
+            conn.commit()
+            
+        return render_template('verified.html')
+    return redirect(url_for('main'))
+
 # Database Related
 # Consumer App
 @app.route("/addUser/", methods=["POST"])
@@ -133,6 +193,60 @@ def updateUserFace():
         
     return "Done"
 
+@app.route("/updateUserDisabled/", methods=["POST"])
+def updateUserDisabled():
+    user = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE users SET disabled = "{0}" WHERE email = "{1}"'.format(user["disabled"], user["email"]))
+        conn.commit()
+    return "Done"
+
+@app.route("/forgotPassword/", methods=["POST"])
+def forgotPassword():
+    user = request.get_json()
+    
+    random_number = random.randint(1000, 10000)
+    link = "http://{0}/reset/{1}" .format(flaskServer, random_number)
+
+    # Sending emails
+    try:
+        text = "You requested for a password reset.\n Click the link below to reset your password.\n{0}" .format(link)
+
+        server.send(to = user["email"], subject = "Forgot Password", contents = text)
+    except Exception as e:
+        print(e)
+        
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('INSERT INTO reset_password (email,number) VALUES ("{0}","{1}")'.format(user["email"], random_number))
+        conn.commit()
+        
+    return "Done"
+
+@app.route("/emailVerification/", methods=["POST"])
+def emailVerification():
+    user = request.get_json()
+    
+    random_number = random.randint(1000, 10000)
+    link = "http://{0}/verified/{1}" .format(flaskServer, random_number)
+
+    # Sending emails
+    try:
+        text = "You have registered an account for ALBA E-Waste app.\n Click the link below to verify your account.\n{0}" .format(link)
+
+        server.send(to = user["email"], subject = "Email Verification", contents = text)
+    except Exception as e:
+        print(e)
+        
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('INSERT INTO email_verification (email,number) VALUES ("{0}","{1}")'.format(user["email"], random_number))
+        conn.commit()
+        
+    return "Done"
+
 # Staff App
 @app.route("/addStaffUser/", methods=["POST"])
 def addStaffUser():
@@ -140,7 +254,7 @@ def addStaffUser():
     
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('INSERT INTO staff_users (username, email, password) VALUES ("{0}", "{1}", "{2}")'.format(user["username"], user["email"], user["password"]))
+        cursor.execute('INSERT INTO staff_users (username, email, password, type) VALUES ("{0}", "{1}", "{2}", "{3}")'.format(user["username"], user["email"], user["password"], user["type"]))
         conn.commit()
     return "Done"
 
@@ -174,6 +288,26 @@ def getStaffAllUser():
         result = cursor.fetchall()
         
     return jsonify(result=result)
+
+@app.route("/updateStaffUserDisabled/", methods=["POST"])
+def updateStaffUserDisabled():
+    user = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE staff_users SET disabled = "{0}" WHERE email = "{1}"'.format(user["disabled"], user["email"]))
+        conn.commit()
+    return "Done"
+
+@app.route("/updateStaffUserType/", methods=["POST"])
+def updateStaffUserType():
+    user = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE staff_users SET type = "{0}" WHERE email = "{1}"'.format(user["type"], user["email"]))
+        conn.commit()
+    return "Done"
 
 @app.route("/getStaffBins/", methods=["POST"])
 def getStaffBins():

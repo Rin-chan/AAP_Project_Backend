@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Reset Password{% endblock %}
+
+{% block content %}
+{% from "includes/_formHelper.html" import render_field %}
+<h1 class="display-4">Reset Password</h1>
+
+<center>
+  <div style="padding: 2%; border: 4px solid black; border-radius: 10px; width: 80%;">
+    <form method="POST" action="">
+      <div class="form-group" style="width: 50%;">
+        {{ render_field(form.password, class="form-control") }}
+      </div>
+      <div class="form-group" style="width: 50%;">
+        {{ render_field(form.confirm, class="form-control") }}
+      </div>
+      <input type="submit" value="Submit" class="btn btn-primary"/>
+    </form>
+  </div>
+</center>
+
+{% endblock %}
