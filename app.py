@@ -107,6 +107,20 @@ def updateUserFace():
     conn.commit()
     return "Done"
 
+@app.route("/getUserPoints/", methods=["POST"])
+def getUserPoints():
+    user = request.get_json()
+    cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
+    result = cursor.fetchall()
+    return jsonify(result=result)
+
+@app.route("/updateUserPoints/", methods=["POST"])
+def updateUserPoints():
+    user = request.get_json()
+    cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
+    conn.commit()
+    return "Done"
+
     
 if __name__ == "__main__":
     app.run()

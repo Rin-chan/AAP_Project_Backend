@@ -18,8 +18,9 @@ def create_qr_code(final_pred):
     # Data Retrieval
     unique_id = str(uuid4())
     points = pred_to_points(final_pred)
+    data = '{"customID": "%s", "Points": %d }' %(unique_id, points)
     # Add data
-    qr.add_data('{"customID": unique_id, "Points": points }')
+    qr.add_data(data)
     
     # Create QR Code
     qr.make(fit=True)
