@@ -1,4 +1,3 @@
-
 # from crypt import methods
 from fileinput import filename
 from unittest import result
@@ -37,7 +36,7 @@ conn = mysql.connect()
 cursor = conn.cursor()
 
 # GENERATE TABLE IF DOESN'T EXIST
-cursor.execute("CREATE TABLE IF NOT EXISTS `users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext,`contact` varchar(8) DEFAULT '',`address` varchar(100) DEFAULT '',`face` tinyint DEFAULT '0',`faceImage` longtext,`points` int DEFAULT '0',`disabled` tinyint DEFAULT '0',`verified` tinyint DEFAULT '0',PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext,`contact` varchar(8) DEFAULT '',`address` varchar(100) DEFAULT '',`face` tinyint DEFAULT '0',`faceImage` longtext,`points` int DEFAULT '0',`disabled` tinyint DEFAULT '0',`verified` tinyint DEFAULT '0',`profilePic` longtext,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `staff_users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext NOT NULL,`type` int DEFAULT '0',`disabled` tinyint DEFAULT '0',PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `bins` (`id` int NOT NULL AUTO_INCREMENT,`location` varchar(100) NOT NULL,`capacity` varchar(100) NOT NULL,`selected` tinyint DEFAULT '0',`x` varchar(100),`y` varchar(100),PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `reset_password` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`number` int NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
@@ -103,9 +102,9 @@ def reset(number):
                 cursor.execute('DELETE FROM reset_password WHERE number = "{0}"'.format(int(number)))
                 conn.commit()
                 
-            return redirect(url_for('main'))
+            return redirect(url_for('home'))
         return render_template('reset.html', form=resetForm)
-    return redirect(url_for('main'))
+    return redirect(url_for('home'))
 
 @app.route('/verified/<string:number>', methods=['GET', 'POST'])
 def verified(number):
@@ -126,7 +125,7 @@ def verified(number):
             conn.commit()
             
         return render_template('verified.html')
-    return redirect(url_for('main'))
+    return redirect(url_for('home'))
 
 # AI Related
 @app.route("/faceVerification/", methods=['POST'])
@@ -233,6 +232,17 @@ def updateUserFace():
         
     return "Done"
 
+@app.route("/updateUserProfilePic/", methods=["POST"])
+def updateUserProfilePic():
+    user = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE users SET profilePic = "{1}" WHERE email = "{0}"'.format(user["email"], user["profilePic"]))
+        conn.commit()
+        
+    return "Done"
+
 @app.route("/updateUserDisabled/", methods=["POST"])
 def updateUserDisabled():
     user = request.get_json()
@@ -285,6 +295,20 @@ def emailVerification():
         cursor.execute('INSERT INTO email_verification (email,number) VALUES ("{0}","{1}")'.format(user["email"], random_number))
         conn.commit()
         
+    return "Done"
+
+@app.route("/getUserPoints/", methods=["POST"])
+def getUserPoints():
+    user = request.get_json()
+    cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
+    result = cursor.fetchall()
+    return jsonify(result=result)
+
+@app.route("/updateUserPoints/", methods=["POST"])
+def updateUserPoints():
+    user = request.get_json()
+    cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
+    conn.commit()
     return "Done"
 
 # Staff App
@@ -349,6 +373,17 @@ def updateStaffUserType():
         conn.commit()
     return "Done"
 
+@app.route("/updateStaffUserPassword/", methods=["POST"])
+def updateStaffUserPassword():
+    user = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE staff_users SET password = "{1}" WHERE email = "{0}"'.format(user["email"], user["password"]))
+        conn.commit()
+        
+    return "Done"
+
 @app.route("/getStaffBins/", methods=["POST"])
 def getStaffBins():
     conn = mysql.connect()  # reconnecting mysql
@@ -366,20 +401,6 @@ def updateStaffBins():
         cursor.execute('UPDATE bins SET selected = "{1}" WHERE id = "{0}"'.format(bin["id"], bin["selected"]))
         conn.commit()
         
-    return "Done"
-
-@app.route("/getUserPoints/", methods=["POST"])
-def getUserPoints():
-    user = request.get_json()
-    cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
-    result = cursor.fetchall()
-    return jsonify(result=result)
-
-@app.route("/updateUserPoints/", methods=["POST"])
-def updateUserPoints():
-    user = request.get_json()
-    cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
-    conn.commit()
     return "Done"
 
     

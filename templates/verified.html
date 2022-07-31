@@ -3,11 +3,17 @@
 
 {% block content %}
 {% from "includes/_formHelper.html" import render_field %}
-<h1 class="display-4">Email Verification</h1>
-
+<style>
+  #btn {
+      margin: 2% 40%;
+  }
+</style>
 <center>
-  <div style="padding: 2%; border: 4px solid black; border-radius: 10px; width: 80%;">
+  <div class="main_box">
+    <h1 class="display-4">Email Verification</h1>
+    <br>
     <p>Your email has been verified.</P>
+    <a href="/" ><button class="action_btn" id="btn">Return to Home</button></a>
   </div>
 </center>
 
