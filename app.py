@@ -27,9 +27,9 @@ app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
 
 mysql = MySQL()
-app.config['MYSQL_DATABASE_USER'] = 'rin'
-app.config['MYSQL_DATABASE_PASSWORD'] = '123456'
-app.config['MYSQL_DATABASE_DB'] = 'aap_project'
+app.config['MYSQL_DATABASE_USER'] = 'root'
+app.config['MYSQL_DATABASE_PASSWORD'] = '203203GSQL'
+app.config['MYSQL_DATABASE_DB'] = 'AAPProject'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
 conn = mysql.connect()
