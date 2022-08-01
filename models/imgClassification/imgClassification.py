@@ -26,7 +26,7 @@ def classify_eWaste(filename):
     
 def reformat_predictions(predictions):
     # Variables
-    class_names = ['desktop', 'laptop', 'mobilephone' , 'modem' , 'printer', 'refrigerator', 'settopbox' , 'tablet' , 'tv']
+    class_names = ['battery', 'lamps', 'solarpanel' , 'washingmachine_dryer' ]
     highest_percent = 0
     highest_class = ""
 
