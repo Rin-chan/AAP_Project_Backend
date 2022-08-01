@@ -32,7 +32,7 @@ def create_qr_code(final_pred):
 
 
 def pred_to_points(final_pred):
-    if final_pred == "TV":
+    if final_pred in ['desktop','printer', 'refrigerator','tv']:
         return 200
     else:
         return 100

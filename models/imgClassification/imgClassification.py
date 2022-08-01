@@ -36,8 +36,8 @@ def reformat_predictions(predictions):
             if float(tensor) > highest_percent:
                 highest_percent = float(tensor)
                 highest_class = class_names[count]
-        print("%s: %.2f" %(class_names[count],float(tensor) * 100))
-        count += 1
+            print("%s: %.2f" %(class_names[count],float(tensor) * 100))
+            count += 1
     
     if (highest_percent * 100) <= 50.0:
         highest_class = 'non-regulated' 
