@@ -7,7 +7,7 @@ from PIL import Image
 import base64
 import io
 
-model = tf.keras.models.load_model('models/imgClassification/imgClassification.h5')
+model = tf.keras.models.load_model("C:\Users\User\Downloads\Week8Review\my_model\imageclass.h5")
 
 def classify_eWaste(filename):
 
