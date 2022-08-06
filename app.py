@@ -21,7 +21,7 @@ from models.binRouting.routing import getPath
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
-flaskServer = "192.168.0.107:5000"
+flaskServer = "192.168.0.102:5000"
 
 app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
@@ -39,8 +39,8 @@ cursor = conn.cursor()
 cursor.execute("CREATE TABLE IF NOT EXISTS `users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext,`contact` varchar(8) DEFAULT '',`address` varchar(100) DEFAULT '',`face` tinyint DEFAULT '0',`faceImage` longtext,`points` int DEFAULT '0',`disabled` tinyint DEFAULT '0',`verified` tinyint DEFAULT '0',`profilePic` longtext,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `staff_users` (`id` int NOT NULL AUTO_INCREMENT,`username` varchar(100) NOT NULL,`email` varchar(100) NOT NULL,`password` longtext NOT NULL,`type` int DEFAULT '0',`disabled` tinyint DEFAULT '0',PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `bins` (`id` int NOT NULL AUTO_INCREMENT,`location` varchar(100) NOT NULL,`capacity` varchar(100) NOT NULL,`selected` tinyint DEFAULT '0',`x` varchar(100),`y` varchar(100),PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
-cursor.execute("CREATE TABLE IF NOT EXISTS `reset_password` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`number` int NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
-cursor.execute("CREATE TABLE IF NOT EXISTS `email_verification` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`number` int NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `reset_password` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`ref` longtext NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `email_verification` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`ref` longtext NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 conn.commit()
 
 # GENERATE DATA FOR BINS
@@ -81,11 +81,11 @@ def displayQR(pred):
     filename = create_qr_code(pred)
     return render_template('displayQR.html', qr=filename)
 
-@app.route('/reset/<string:number>', methods=['GET', 'POST'])
-def reset(number):
+@app.route('/reset/<string:ref>', methods=['GET', 'POST'])
+def reset(ref):
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT * FROM reset_password WHERE number = "{0}"'.format(int(number)))
+        cursor.execute('SELECT * FROM reset_password WHERE ref = "{0}"'.format(ref))
         result = cursor.fetchall()
 
     if len(result) != 0:
@@ -99,18 +99,18 @@ def reset(number):
                 
             conn = mysql.connect()  # reconnecting mysql
             with conn.cursor() as cursor:
-                cursor.execute('DELETE FROM reset_password WHERE number = "{0}"'.format(int(number)))
+                cursor.execute('DELETE FROM reset_password WHERE ref = "{0}"'.format(ref))
                 conn.commit()
                 
             return redirect(url_for('home'))
         return render_template('reset.html', form=resetForm)
     return redirect(url_for('home'))
 
-@app.route('/verified/<string:number>', methods=['GET', 'POST'])
-def verified(number):
+@app.route('/verified/<string:ref>', methods=['GET', 'POST'])
+def verified(ref):
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT * FROM email_verification WHERE number = "{0}"'.format(int(number)))
+        cursor.execute('SELECT * FROM email_verification WHERE ref = "{0}"'.format(ref))
         result = cursor.fetchall()
 
     if len(result) != 0:
@@ -121,7 +121,7 @@ def verified(number):
                 
         conn = mysql.connect()  # reconnecting mysql
         with conn.cursor() as cursor:
-            cursor.execute('DELETE FROM email_verification WHERE number = "{0}"'.format(int(number)))
+            cursor.execute('DELETE FROM email_verification WHERE ref = "{0}"'.format(ref))
             conn.commit()
             
         return render_template('verified.html')
@@ -258,7 +258,9 @@ def forgotPassword():
     user = request.get_json()
     
     random_number = random.randint(1000, 10000)
-    link = "http://{0}/reset/{1}" .format(flaskServer, random_number)
+    original_text = str(user["email"]) + str(random_number)
+    hashed_text = hashlib.sha1(original_text.encode('utf-8')).hexdigest()
+    link = "http://{0}/reset/{1}" .format(flaskServer, hashed_text)
 
     # Sending emails
     try:
@@ -270,7 +272,7 @@ def forgotPassword():
         
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('INSERT INTO reset_password (email,number) VALUES ("{0}","{1}")'.format(user["email"], random_number))
+        cursor.execute('INSERT INTO reset_password (email,ref) VALUES ("{0}","{1}")'.format(user["email"], hashed_text))
         conn.commit()
         
     return "Done"
@@ -280,7 +282,9 @@ def emailVerification():
     user = request.get_json()
     
     random_number = random.randint(1000, 10000)
-    link = "http://{0}/verified/{1}" .format(flaskServer, random_number)
+    original_text = str(user["email"]) + str(random_number)
+    hashed_text = hashlib.sha1(original_text.encode('utf-8')).hexdigest()
+    link = "http://{0}/verified/{1}" .format(flaskServer, hashed_text)
 
     # Sending emails
     try:
@@ -292,7 +296,7 @@ def emailVerification():
         
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('INSERT INTO email_verification (email,number) VALUES ("{0}","{1}")'.format(user["email"], random_number))
+        cursor.execute('INSERT INTO email_verification (email,ref) VALUES ("{0}","{1}")'.format(user["email"], hashed_text))
         conn.commit()
         
     return "Done"
