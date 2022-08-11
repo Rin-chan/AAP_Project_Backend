@@ -16,7 +16,7 @@ def create_qr_code(final_pred):
     filename = "qr"+time.strftime("%Y%m%d-%H%M%S")+'.jpg'
     filepath = 'static/qr/'+filename
     # Data Retrieval
-    unique_id = str(uuid4())
+    unique_id = time.strftime("%Y%m%d-%H%M%S")
     points = pred_to_points(final_pred)
     data = '{"customID": "%s", "Points": %d }' %(unique_id, points)
     # Add data

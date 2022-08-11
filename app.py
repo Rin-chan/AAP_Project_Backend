@@ -21,7 +21,7 @@ from models.binRouting.routing import getPath
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
-flaskServer = "192.168.0.107:5000"
+flaskServer = "172.27.191.136:5000"
 
 app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
@@ -41,6 +41,7 @@ cursor.execute("CREATE TABLE IF NOT EXISTS `staff_users` (`id` int NOT NULL AUTO
 cursor.execute("CREATE TABLE IF NOT EXISTS `bins` (`id` int NOT NULL AUTO_INCREMENT,`location` varchar(100) NOT NULL,`capacity` varchar(100) NOT NULL,`selected` tinyint DEFAULT '0',`x` varchar(100),`y` varchar(100),PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `reset_password` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`number` int NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `email_verification` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`number` int NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `gifts` (`id` int NOT NULL AUTO_INCREMENT,`giftname` varchar(100) NOT NULL,`description` longtext,`industry` varchar(100) DEFAULT '',`company` varchar(100) DEFAULT '',`code` varchar(100) NOT NULL,`points` int DEFAULT '0',`img` longtext,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`))ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 conn.commit()
 
 # GENERATE DATA FOR BINS
@@ -55,6 +56,15 @@ if (len(bin_num) == 0):
     cursor.execute('INSERT INTO bins (location, capacity, selected, x, y) VALUES ("Tampines", "Partial", 1, "103.94501280794431", "1.354064943770207")')
     cursor.execute('INSERT INTO bins (location, capacity, selected, x, y) VALUES ("Bedok", "Full", 1, "103.9292746782303", "1.3245660237642984")')
     conn.commit()
+
+# GENERATE DATA FOR GIFTS
+cursor.execute('SELECT * FROM gifts')
+gift_num = cursor.fetchall()
+if (len(gift_num) == 0):
+    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $2 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K3479AD8", 200, "grabfood.png")')
+    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $10 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K347C2L8", 800, "grabfood.png")')
+    conn.commit()
+
 
 # FOR TESTING
 # Web Pages Related
@@ -176,6 +186,7 @@ def getSpecificUser():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM users WHERE email = "{0}"'.format(user["email"]))
         result = cursor.fetchall()
+    print(result)
         
     return jsonify(result=result)
     
@@ -297,11 +308,36 @@ def emailVerification():
         
     return "Done"
 
+@app.route("/getAllGifts/", methods=["POST"])
+def getAllGifts():
+    req = request.get_json()
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT giftname, points FROM gifts LIMIT {1} OFFSET {0}'.format(req['offset'], req['pagelimit']))
+        result = cursor.fetchall()
+        print(result)
+
+    return jsonify(result=result)
+
+@app.route("/getSpecificGift/", methods=["POST"])
+def getSpecificGift():
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM gifts WHERE code = "{0}"'.format(req['code']))
+        result = cursor.fetchall()
+        # testing
+        print(result)
+        
+    return jsonify(result=result)
+
 @app.route("/getUserPoints/", methods=["POST"])
 def getUserPoints():
     user = request.get_json()
     cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
     result = cursor.fetchall()
+    print(result)
     return jsonify(result=result)
 
 @app.route("/updateUserPoints/", methods=["POST"])
@@ -309,7 +345,7 @@ def updateUserPoints():
     user = request.get_json()
     cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
     conn.commit()
-    return "Done"
+    return 'Done'
 
 # Staff App
 @app.route("/addStaffUser/", methods=["POST"])
