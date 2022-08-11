@@ -1,9 +1,9 @@
 # from crypt import methods
+from datetime import datetime
 from fileinput import filename
 from unittest import result
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, Response
 from flaskext.mysql import MySQL
-import random
 from Forms import ResetForm
 import yagmail
 import hashlib
@@ -21,7 +21,7 @@ from models.binRouting.routing import getPath
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
-flaskServer = "192.168.0.102:5000"
+flaskServer = "192.168.0.104:5000"
 
 app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
@@ -257,8 +257,8 @@ def updateUserDisabled():
 def forgotPassword():
     user = request.get_json()
     
-    random_number = random.randint(1000, 10000)
-    original_text = str(user["email"]) + str(random_number)
+    cur_date = datetime.now()
+    original_text = str(user["email"]) + str(cur_date)
     hashed_text = hashlib.sha1(original_text.encode('utf-8')).hexdigest()
     link = "http://{0}/reset/{1}" .format(flaskServer, hashed_text)
 
@@ -281,8 +281,8 @@ def forgotPassword():
 def emailVerification():
     user = request.get_json()
     
-    random_number = random.randint(1000, 10000)
-    original_text = str(user["email"]) + str(random_number)
+    cur_date = datetime.now()
+    original_text = str(user["email"]) + str(cur_date)
     hashed_text = hashlib.sha1(original_text.encode('utf-8')).hexdigest()
     link = "http://{0}/verified/{1}" .format(flaskServer, hashed_text)
 
