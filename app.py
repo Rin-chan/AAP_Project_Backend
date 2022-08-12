@@ -424,12 +424,26 @@ def updateStaffUserPassword():
         
     return "Done"
 
-@app.route("/getStaffBins/", methods=["POST"])
-def getStaffBins():
+@app.route("/getStaffAllBins/", methods=["POST"])
+def getStaffAllBins():
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM bins')
         result = cursor.fetchall()
+        
+    return jsonify(result=result)
+
+@app.route("/getStaffBins/", methods=["POST"])
+def getStaffBins():
+    req = request.get_json()
+    
+    offset = req["page"]*req["itemsPerPage"]
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM bins LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"]))
+        result = cursor.fetchall()
+        
     return jsonify(result=result)
 
 @app.route("/updateStaffBins/", methods=["POST"])
@@ -442,6 +456,14 @@ def updateStaffBins():
         conn.commit()
         
     return "Done"
+
+@app.route("/getStaffAllBinsCount/", methods=["POST"])
+def getStaffAllBinsCount():
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT COUNT(*) FROM bins')
+        result = cursor.fetchall()
+    return jsonify(result=result)
 
     
 if __name__ == "__main__":
