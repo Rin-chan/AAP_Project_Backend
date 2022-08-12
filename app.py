@@ -173,7 +173,7 @@ def addUser():
     
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('INSERT INTO users (username, email, password) VALUES ("{0}", "{1}", "{2}")'.format(user["username"], user["email"], user["password"]))
+        cursor.execute('INSERT INTO users (username, email, password, verified) VALUES ("{0}", "{1}", "{2}", "{3}")'.format(user["username"], user["email"], user["password"], user["verified"]))
         conn.commit()
         
     return "Done"
