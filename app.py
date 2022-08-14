@@ -21,7 +21,7 @@ from models.binRouting.routing import getPath
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
-flaskServer = "192.168.0.104:5000"
+flaskServer = "175.156.122.119:5000"
 
 app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
@@ -192,9 +192,11 @@ def getSpecificUser():
     
 @app.route("/getAllUsersCount/", methods=["POST"])
 def getAllUsersCount():
+    req = request.get_json()
+    
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:         
-        cursor.execute('SELECT COUNT(*) FROM users')
+        cursor.execute('SELECT COUNT(*) FROM users WHERE username LIKE "%{0}%"'.format(req["query"]))
         result = cursor.fetchall()
     return jsonify(result=result)
 
@@ -206,7 +208,7 @@ def getAllUser():
     
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT * FROM users LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"]))
+        cursor.execute('SELECT * FROM users WHERE username LIKE "%{2}%" LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"], req["query"]))
         result = cursor.fetchall()
     return jsonify(result=result)
 
@@ -374,9 +376,11 @@ def getStaffSpecificUser():
 
 @app.route("/getStaffAllUsersCount/", methods=["POST"])
 def getStaffAllUsersCount():
+    req = request.get_json()
+    
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT COUNT(*) FROM staff_users')
+        cursor.execute('SELECT COUNT(*) FROM staff_users WHERE username LIKE "%{0}%"'.format(req["query"]))
         result = cursor.fetchall()
     return jsonify(result=result)
 
@@ -388,7 +392,7 @@ def getStaffAllUser():
     
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT * FROM staff_users LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"]))
+        cursor.execute('SELECT * FROM staff_users WHERE username LIKE "%{2}%" LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"], req["query"]))
         result = cursor.fetchall()
         
     return jsonify(result=result)
@@ -441,7 +445,7 @@ def getStaffBins():
     
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT * FROM bins LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"]))
+        cursor.execute('SELECT * FROM bins WHERE location LIKE "%{2}%" LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"], req["query"]))
         result = cursor.fetchall()
         
     return jsonify(result=result)
@@ -459,9 +463,11 @@ def updateStaffBins():
 
 @app.route("/getStaffAllBinsCount/", methods=["POST"])
 def getStaffAllBinsCount():
+    req = request.get_json()
+    
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT COUNT(*) FROM bins')
+        cursor.execute('SELECT COUNT(*) FROM bins WHERE location LIKE "%{0}%"'.format(req["query"]))
         result = cursor.fetchall()
     return jsonify(result=result)
 
