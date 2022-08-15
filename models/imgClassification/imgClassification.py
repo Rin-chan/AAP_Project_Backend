@@ -8,7 +8,7 @@ import base64
 import io
 
 model = tf.keras.models.load_model('models/imgClassification/imgClassification.h5')
-model1 = tf.keras.models.load_model('models/imgClassification/imageclass.h5')
+# model1 = tf.keras.models.load_model('models/imgClassification/imageclass.h5')
 
 def classify_eWaste(filename):
 

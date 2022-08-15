@@ -18,6 +18,12 @@ from models.imgClassification.imgClassification import classify_eWaste, reformat
 from models.faceVerification.siamese import generateDiss
 from models.binRouting.routing import getPath
 
+import string
+import random
+def unique_id(size):
+    chars = list(set(string.ascii_uppercase + string.digits).difference('LIO01'))
+    return ''.join(random.choices(chars, k=size))
+
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
@@ -42,6 +48,7 @@ cursor.execute("CREATE TABLE IF NOT EXISTS `bins` (`id` int NOT NULL AUTO_INCREM
 cursor.execute("CREATE TABLE IF NOT EXISTS `reset_password` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`ref` longtext NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `email_verification` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`ref` longtext NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `gifts` (`id` int NOT NULL AUTO_INCREMENT,`giftname` varchar(100) NOT NULL,`description` longtext,`industry` varchar(100) DEFAULT '',`company` varchar(100) DEFAULT '',`code` varchar(100) NOT NULL,`points` int DEFAULT '0',`img` longtext,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`))ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `redeem_history` (`id` int NOT NULL AUTO_INCREMENT,`redeemcode` varchar(100) DEFAULT '',`giftname` varchar(100) NOT NULL,`description` longtext,`industry` varchar(100) DEFAULT '',`company` varchar(100) DEFAULT '',`points` int DEFAULT '0',`img` longtext,`itemcode` varchar(100) DEFAULT '',`email` varchar(100) NOT NULL,`used` tinyint DEFAULT '0',PRIMARY KEY (`redeemcode`),UNIQUE KEY `id_UNIQUE` (`id`))ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;")
 conn.commit()
 
 # GENERATE DATA FOR BINS
@@ -317,7 +324,7 @@ def getAllGifts():
     req = request.get_json()
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT giftname, points FROM gifts LIMIT {1} OFFSET {0}'.format(req['offset'], req['pagelimit']))
+        cursor.execute('SELECT giftname, points, industry, img, code FROM gifts LIMIT {1} OFFSET {0}'.format(req['offset'], req['pagelimit']))
         result = cursor.fetchall()
         print(result)
 
@@ -336,11 +343,89 @@ def getSpecificGift():
         
     return jsonify(result=result)
 
+
+# Add Redeem Item
+@app.route("/addRedeemItem/", methods=["POST"])
+def addRedeemItem():
+
+    redeemcode = unique_id(8)
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('INSERT INTO redeem_history (itemcode, email, redeemcode, giftname, industry, company, points, img, description) VALUES ("{0}", "{1}", "{2}", "{3}", "{4}", "{5}","{6}", "{7}", "{8}")'.format(req["itemcode"], req["email"], redeemcode, req['giftname'] , req['industry'], req['company'], req['points'], req['img'], req['description']))
+        conn.commit()
+    return "done"
+
+@app.route("/getSpecificRedeem/", methods=["POST"])
+def getSpecificRedeem():
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM redeem_history WHERE redeemcode = "{0}"'.format(req['redeemcode']))
+        result = cursor.fetchall()
+        # testing
+        print(result)
+        
+    return jsonify(result=result)
+
+# Use Redeem Item
+@app.route("/useRedeemItem/", methods=["POST"])
+def usedRedeemItem(): 
+    req = request.get_json()
+
+    cur_date = datetime.now()
+    original_text = str(req["email"]) + str(cur_date)
+    hashed_text = hashlib.sha1(original_text.encode('utf-8')).hexdigest()
+
+    # Sending emails
+    try:
+        text = "Hi,\n The code for {1} is {0}\n Thank you." .format(req["redeemcode"], req["giftname"])
+
+        server.send(to = req["email"], subject = "Code for Redeemed item", contents = text)
+    except Exception as e:
+        print(e)
+        
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE redeem_history SET used = 1 WHERE redeemcode = "{0}"'.format(req["redeemcode"]))
+        conn.commit()
+    return "Done"
+
+@app.route("/getUnusedRedeemItems/", methods=["POST"])
+def getAllUnusedRedeemItem():
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM redeem_history WHERE email = "{0}" AND used = 0'.format(req['email']))
+        result = cursor.fetchall()
+        # testing
+        print(result)
+        
+    return jsonify(result=result)
+
+@app.route("/getUsedRedeemItems/", methods=["POST"])
+def getAllUsedRedeemItem():
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM redeem_history WHERE email = "{0}" AND used = 1'.format(req['email']))
+        result = cursor.fetchall()
+        # testing
+        print(result)
+        
+    return jsonify(result=result)
+
 @app.route("/getUserPoints/", methods=["POST"])
 def getUserPoints():
     user = request.get_json()
-    cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
-    result = cursor.fetchall()
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
+        result = cursor.fetchall()
     print(result)
     return jsonify(result=result)
 
