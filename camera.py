@@ -2,12 +2,12 @@ import cv2
 import time
 
 
-camera = cv2.VideoCapture("http://192.168.1.66:5000/video_feed")
+camera = cv2.VideoCapture(0)
 
 def gen_frames():  
     global camera
     # camera = cv2.VideoCapture(0)
-    camera = cv2.VideoCapture("http://192.168.1.66:5000/video_feed")
+    camera = cv2.VideoCapture(0)
 
     while True:
         success, frame = camera.read()  # read the camera frame

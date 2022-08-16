@@ -14,8 +14,6 @@ from qr_generator import create_qr_code
 
 from models.faceVerification.siamese import generateDiss
 from models.imgClassification.imgClassification import classify_eWaste_j, classify_eWaste_s, reformat_predictions
-
-from models.faceVerification.siamese import generateDiss
 from models.binRouting.routing import getPath
 
 import string
@@ -27,7 +25,7 @@ def unique_id(size):
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
-flaskServer = "175.156.122.119:5000"
+flaskServer = "49.245.83.80:5000"
 
 app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
@@ -209,7 +207,6 @@ def getSpecificUser():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM users WHERE email = "{0}"'.format(user["email"]))
         result = cursor.fetchall()
-    print(result)
         
     return jsonify(result=result)
     
@@ -344,7 +341,6 @@ def getAllGifts():
     with conn.cursor() as cursor:
         cursor.execute('SELECT giftname, points, industry, company, img, code FROM gifts LIMIT {1} OFFSET {0}'.format(req['offset'], req['pagelimit']))
         result = cursor.fetchall()
-        print(result)
 
     return jsonify(result=result)
 
@@ -355,7 +351,6 @@ def filterGifts():
     with conn.cursor() as cursor:
         cursor.execute('SELECT giftname, points, industry, img, code FROM gifts WHERE industry = "{0}"'.format(req['filter']))
         result = cursor.fetchall()
-        print(result)
 
     return jsonify(result=result)
 
@@ -367,8 +362,6 @@ def getSpecificGift():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM gifts WHERE code = "{0}"'.format(req['code']))
         result = cursor.fetchall()
-        # testing
-        print(result)
         
     return jsonify(result=result)
 
@@ -394,8 +387,6 @@ def getSpecificRedeem():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM redeem_history WHERE redeemcode = "{0}"'.format(req['redeemcode']))
         result = cursor.fetchall()
-        # testing
-        print(result)
         
     return jsonify(result=result)
 
@@ -430,8 +421,6 @@ def getAllUnusedRedeemItem():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM redeem_history WHERE email = "{0}" AND used = 0'.format(req['email']))
         result = cursor.fetchall()
-        # testing
-        print(result)
         
     return jsonify(result=result)
 
@@ -443,8 +432,6 @@ def getAllUsedRedeemItem():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM redeem_history WHERE email = "{0}" AND used = 1'.format(req['email']))
         result = cursor.fetchall()
-        # testing
-        print(result)
         
     return jsonify(result=result)
 
@@ -455,7 +442,6 @@ def getUserPoints():
     with conn.cursor() as cursor:
         cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
         result = cursor.fetchall()
-    print(result)
     return jsonify(result=result)
 
 @app.route("/updateUserPoints/", methods=["POST"])
