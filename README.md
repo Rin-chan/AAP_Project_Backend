@@ -1,7 +1,22 @@
-# AAP_Project_Backend
+# AAP_Project_Backend (Flask server for database, AI and physical bin)
 
-### Anaconda Environment download for easier access (update this link with your own file if you added more dependencies)
-https://www.dropbox.com/s/076d9ggqbe1jk8b/AAP_Project_Backend.yaml?dl=0
+### Anaconda Environment Download
+https://www.dropbox.com/s/54t22ftfls0a1lj/Flask_env.yaml?dl=0
 
-### AI.h5 file too big to upload in github
+### Sonia and Jaden's AI Model (Too big to be uploaded to Github)
 drive
+
+### secrets.json (Should not be shared but is placed there for submission purposes)
+Create your account here: https://openrouteservice.org/ and get a key.
+```
+{
+"ORSKey": "Your-key-here"
+}
+```
+
+### settings.json
+```
+{
+"flaskServer":"Your-LAN-IP-here"
+}
+```

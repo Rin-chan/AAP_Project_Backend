@@ -14,9 +14,7 @@ from camera import gen_frames, capturePhoto, closeCamera
 from qr_generator import create_qr_code
 
 from models.faceVerification.siamese import generateDiss
-from models.imgClassification.imgClassification import classify_eWaste, reformat_predictions
-
-from models.faceVerification.siamese import generateDiss
+from models.imgClassification.imgClassification import classify_eWaste_j, classify_eWaste_s, reformat_predictions
 from models.binRouting.routing import getPath
 
 import string
@@ -72,8 +70,9 @@ if (len(bin_num) == 0):
 cursor.execute('SELECT * FROM gifts')
 gift_num = cursor.fetchall()
 if (len(gift_num) == 0):
-    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $2 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K3479AD8", 200, "grabfood.png")')
-    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $10 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K347C2L8", 800, "grabfood.png")')
+    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $2 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K3479AD8", 200, "../../assets/images/grabfood.png")')
+    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $10 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K347C2L8", 800, "../../assets/images/grabfood.png")')
+    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("POPULAR $10 GIFTCARD", "Terms & Conditions: 1. eGiftCard validity showcased on Mooments URL to be considered final, and adhered to accordingly. 2.Redeemable at all POPULAR bookstores and UrbanWrite stores in Singapore only. 3. Redemption is not applicable at the self-checkout kiosk. 4.Not exchangeable for cash and not refundable for any unused balance (one-time use only) 5. Multiple POPULAR Gift Cards from Mooments can be used in a single transaction. 6. Not valid for purchase of Gift Vouchers or application / renewal/ replacement of POPULAR Card.", "Shopping", "POPULAR", "POP5663D", 800, "../../assets/images/popular.png")')
     conn.commit()
 
 
@@ -167,12 +166,27 @@ def routing():
 
 @app.route("/imgClassification/<filename>")
 def imgClassification(filename):
-    predictions = classify_eWaste(filename)
-    print(predictions)
-    logging.info(predictions)
-    final_result = reformat_predictions(predictions)
-    print(final_result)
-    logging.info(final_result)
+    final_result = ""
+
+    pred_j = classify_eWaste_j(filename)
+    pred_S = classify_eWaste_s(filename)
+
+    class_j, percent_j = reformat_predictions(pred_j, "j")
+    class_s, percent_s = reformat_predictions(pred_S, "s")
+    
+    if percent_s > percent_j:
+        if class_s == 'others':
+            if (percent_j * 100) <= 50.0:
+                final_result = "non_regulated"
+            else:
+                final_result = class_j
+    else:
+        if class_j == 'others':
+            if (percent_s * 100) <= 50.0:
+                final_result = "non_regulated"
+            else:
+                final_result = class_s
+    print("final result =" + final_result)
     
     return render_template('ai_Results.html', prediction=final_result)
     
@@ -197,7 +211,6 @@ def getSpecificUser():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM users WHERE email = "{0}"'.format(user["email"]))
         result = cursor.fetchall()
-    print(result)
         
     return jsonify(result=result)
     
@@ -330,9 +343,18 @@ def getAllGifts():
     req = request.get_json()
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT giftname, points, industry, img, code FROM gifts LIMIT {1} OFFSET {0}'.format(req['offset'], req['pagelimit']))
+        cursor.execute('SELECT giftname, points, industry, company, img, code FROM gifts LIMIT {1} OFFSET {0}'.format(req['offset'], req['pagelimit']))
         result = cursor.fetchall()
-        print(result)
+
+    return jsonify(result=result)
+
+@app.route("/FilterGifts/", methods=["POST"])
+def filterGifts():
+    req = request.get_json()
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT giftname, points, industry, img, code FROM gifts WHERE industry = "{0}"'.format(req['filter']))
+        result = cursor.fetchall()
 
     return jsonify(result=result)
 
@@ -344,8 +366,6 @@ def getSpecificGift():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM gifts WHERE code = "{0}"'.format(req['code']))
         result = cursor.fetchall()
-        # testing
-        print(result)
         
     return jsonify(result=result)
 
@@ -371,8 +391,6 @@ def getSpecificRedeem():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM redeem_history WHERE redeemcode = "{0}"'.format(req['redeemcode']))
         result = cursor.fetchall()
-        # testing
-        print(result)
         
     return jsonify(result=result)
 
@@ -407,8 +425,6 @@ def getAllUnusedRedeemItem():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM redeem_history WHERE email = "{0}" AND used = 0'.format(req['email']))
         result = cursor.fetchall()
-        # testing
-        print(result)
         
     return jsonify(result=result)
 
@@ -420,8 +436,6 @@ def getAllUsedRedeemItem():
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM redeem_history WHERE email = "{0}" AND used = 1'.format(req['email']))
         result = cursor.fetchall()
-        # testing
-        print(result)
         
     return jsonify(result=result)
 
@@ -432,14 +446,15 @@ def getUserPoints():
     with conn.cursor() as cursor:
         cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
         result = cursor.fetchall()
-    print(result)
     return jsonify(result=result)
 
 @app.route("/updateUserPoints/", methods=["POST"])
 def updateUserPoints():
     user = request.get_json()
-    cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
-    conn.commit()
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
+        conn.commit()
     return 'Done'
 
 # Staff App
