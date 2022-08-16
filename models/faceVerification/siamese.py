@@ -20,26 +20,25 @@ def create_shared_network(input_shape):
     model.add(Dense(units=128, activation='sigmoid'))
     return model
 
-input_shape = (112, 92, 1)
-shared_network = create_shared_network(input_shape)
-input_top = Input(shape=input_shape)
-input_bottom = Input(shape=input_shape)
-output_top = shared_network(input_top)
-output_bottom = shared_network(input_bottom)
-
 def euclidean_distance(vectors):
     vector1, vector2 = vectors
     sum_square = K.sum(K.square(vector1 - vector2), axis=1, keepdims=True)
     return K.sqrt(K.maximum(sum_square, K.epsilon()))
 
-distance = Lambda(euclidean_distance, output_shape=(1,))([output_top, output_bottom])
-
-model = Model(inputs=[input_top, input_bottom], outputs=distance)
-
-# Load pretrained model
-model.load_weights("models/faceVerification/siamese.h5")
-
 def generateDiss(img1, img2):
+    input_shape = (112, 92, 1)
+    shared_network = create_shared_network(input_shape)
+    input_top = Input(shape=input_shape)
+    input_bottom = Input(shape=input_shape)
+    output_top = shared_network(input_top)
+    output_bottom = shared_network(input_bottom)
+    
+    distance = Lambda(euclidean_distance, output_shape=(1,))([output_top, output_bottom])
+    model = Model(inputs=[input_top, input_bottom], outputs=distance)
+
+    # Load pretrained model
+    model.load_weights("models/faceVerification/siamese.h5")
+
     result = False
     
     # Convert base64 image to NumPy array
