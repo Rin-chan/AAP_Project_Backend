@@ -1,9 +1,9 @@
 # from crypt import methods
+from datetime import datetime
 from fileinput import filename
 from unittest import result
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, Response
 from flaskext.mysql import MySQL
-import random
 from Forms import ResetForm
 import yagmail
 import hashlib
@@ -13,15 +13,21 @@ from camera import gen_frames, capturePhoto, closeCamera
 from qr_generator import create_qr_code
 
 from models.faceVerification.siamese import generateDiss
-from models.imgClassification.imgClassification import classify_eWaste, reformat_predictions
+from models.imgClassification.imgClassification import classify_eWaste_j, classify_eWaste_s, reformat_predictions
 
 from models.faceVerification.siamese import generateDiss
 from models.binRouting.routing import getPath
 
+import string
+import random
+def unique_id(size):
+    chars = list(set(string.ascii_uppercase + string.digits).difference('LIO01'))
+    return ''.join(random.choices(chars, k=size))
+
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
-flaskServer = "192.168.0.107:5000"
+flaskServer = "175.156.122.119:5000"
 
 app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
@@ -42,6 +48,7 @@ cursor.execute("CREATE TABLE IF NOT EXISTS `bins` (`id` int NOT NULL AUTO_INCREM
 cursor.execute("CREATE TABLE IF NOT EXISTS `reset_password` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`ref` longtext NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `email_verification` (`id` int NOT NULL AUTO_INCREMENT,`email` varchar(100) NOT NULL,`ref` longtext NOT NULL,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
 cursor.execute("CREATE TABLE IF NOT EXISTS `gifts` (`id` int NOT NULL AUTO_INCREMENT,`giftname` varchar(100) NOT NULL,`description` longtext,`industry` varchar(100) DEFAULT '',`company` varchar(100) DEFAULT '',`code` varchar(100) NOT NULL,`points` int DEFAULT '0',`img` longtext,PRIMARY KEY (`id`),UNIQUE KEY `id_UNIQUE` (`id`))ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci")
+cursor.execute("CREATE TABLE IF NOT EXISTS `redeem_history` (`id` int NOT NULL AUTO_INCREMENT,`redeemcode` varchar(100) DEFAULT '',`giftname` varchar(100) NOT NULL,`description` longtext,`industry` varchar(100) DEFAULT '',`company` varchar(100) DEFAULT '',`points` int DEFAULT '0',`img` longtext,`itemcode` varchar(100) DEFAULT '',`email` varchar(100) NOT NULL,`used` tinyint DEFAULT '0',PRIMARY KEY (`redeemcode`),UNIQUE KEY `id_UNIQUE` (`id`))ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;")
 conn.commit()
 
 # GENERATE DATA FOR BINS
@@ -61,8 +68,9 @@ if (len(bin_num) == 0):
 cursor.execute('SELECT * FROM gifts')
 gift_num = cursor.fetchall()
 if (len(gift_num) == 0):
-    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $2 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K3479AD8", 200, "grabfood.png")')
-    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $10 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K347C2L8", 800, "grabfood.png")')
+    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $2 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K3479AD8", 200, "../../assets/images/grabfood.png")')
+    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("GRAB FOOD $10 OFF VOUCHER", "Terms & Conditions: 1. Valid for one-time use on a single Food order in Singapore only. 2. Valid on GrabFood only. GrabMart not included. 3. Voucher is non-transferable, non-refundable and non-exchangeable for cash/credit-in-kind If your voucher has an error, please visit our help centre to report on the issue: https://help.grab.com/hc/en-sg/articles/115011212167-My-promo-code-doesn-t-work", "Food", "GRAB FOOD", "K347C2L8", 800, "../../assets/images/grabfood.png")')
+    cursor.execute('INSERT INTO gifts (giftname, description, industry, company, code, points, img) VALUES ("POPULAR $10 GIFTCARD", "Terms & Conditions: 1. eGiftCard validity showcased on Mooments URL to be considered final, and adhered to accordingly. 2.Redeemable at all POPULAR bookstores and UrbanWrite stores in Singapore only. 3. Redemption is not applicable at the self-checkout kiosk. 4.Not exchangeable for cash and not refundable for any unused balance (one-time use only) 5. Multiple POPULAR Gift Cards from Mooments can be used in a single transaction. 6. Not valid for purchase of Gift Vouchers or application / renewal/ replacement of POPULAR Card.", "Shopping", "POPULAR", "POP5663D", 800, "../../assets/images/popular.png")')
     conn.commit()
 
 
@@ -156,12 +164,27 @@ def routing():
 
 @app.route("/imgClassification/<filename>")
 def imgClassification(filename):
-    predictions = classify_eWaste(filename)
-    print(predictions)
-    logging.info(predictions)
-    final_result = reformat_predictions(predictions)
-    print(final_result)
-    logging.info(final_result)
+    final_result = ""
+
+    pred_j = classify_eWaste_j(filename)
+    pred_S = classify_eWaste_s(filename)
+
+    class_j, percent_j = reformat_predictions(pred_j, "j")
+    class_s, percent_s = reformat_predictions(pred_S, "s")
+    
+    if percent_s > percent_j:
+        if class_s == 'others':
+            if (percent_j * 100) <= 50.0:
+                final_result = "non_regulated"
+            else:
+                final_result = class_j
+    else:
+        if class_j == 'others':
+            if (percent_s * 100) <= 50.0:
+                final_result = "non_regulated"
+            else:
+                final_result = class_s
+    print("final result =" + final_result)
     
     return render_template('ai_Results.html', prediction=final_result)
     
@@ -173,7 +196,7 @@ def addUser():
     
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('INSERT INTO users (username, email, password) VALUES ("{0}", "{1}", "{2}")'.format(user["username"], user["email"], user["password"]))
+        cursor.execute('INSERT INTO users (username, email, password, verified) VALUES ("{0}", "{1}", "{2}", "{3}")'.format(user["username"], user["email"], user["password"], user["verified"]))
         conn.commit()
         
     return "Done"
@@ -192,9 +215,11 @@ def getSpecificUser():
     
 @app.route("/getAllUsersCount/", methods=["POST"])
 def getAllUsersCount():
+    req = request.get_json()
+    
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:         
-        cursor.execute('SELECT COUNT(*) FROM users')
+        cursor.execute('SELECT COUNT(*) FROM users WHERE username LIKE "%{0}%"'.format(req["query"]))
         result = cursor.fetchall()
     return jsonify(result=result)
 
@@ -206,7 +231,7 @@ def getAllUser():
     
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT * FROM users LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"]))
+        cursor.execute('SELECT * FROM users WHERE username LIKE "%{2}%" LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"], req["query"]))
         result = cursor.fetchall()
     return jsonify(result=result)
 
@@ -268,8 +293,8 @@ def updateUserDisabled():
 def forgotPassword():
     user = request.get_json()
     
-    random_number = random.randint(1000, 10000)
-    original_text = str(user["email"]) + str(random_number)
+    cur_date = datetime.now()
+    original_text = str(user["email"]) + str(cur_date)
     hashed_text = hashlib.sha1(original_text.encode('utf-8')).hexdigest()
     link = "http://{0}/reset/{1}" .format(flaskServer, hashed_text)
 
@@ -292,8 +317,8 @@ def forgotPassword():
 def emailVerification():
     user = request.get_json()
     
-    random_number = random.randint(1000, 10000)
-    original_text = str(user["email"]) + str(random_number)
+    cur_date = datetime.now()
+    original_text = str(user["email"]) + str(cur_date)
     hashed_text = hashlib.sha1(original_text.encode('utf-8')).hexdigest()
     link = "http://{0}/verified/{1}" .format(flaskServer, hashed_text)
 
@@ -317,7 +342,18 @@ def getAllGifts():
     req = request.get_json()
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT giftname, points FROM gifts LIMIT {1} OFFSET {0}'.format(req['offset'], req['pagelimit']))
+        cursor.execute('SELECT giftname, points, industry, company, img, code FROM gifts LIMIT {1} OFFSET {0}'.format(req['offset'], req['pagelimit']))
+        result = cursor.fetchall()
+        print(result)
+
+    return jsonify(result=result)
+
+@app.route("/FilterGifts/", methods=["POST"])
+def filterGifts():
+    req = request.get_json()
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT giftname, points, industry, img, code FROM gifts WHERE industry = "{0}"'.format(req['filter']))
         result = cursor.fetchall()
         print(result)
 
@@ -336,19 +372,99 @@ def getSpecificGift():
         
     return jsonify(result=result)
 
+
+# Add Redeem Item
+@app.route("/addRedeemItem/", methods=["POST"])
+def addRedeemItem():
+
+    redeemcode = unique_id(8)
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('INSERT INTO redeem_history (itemcode, email, redeemcode, giftname, industry, company, points, img, description) VALUES ("{0}", "{1}", "{2}", "{3}", "{4}", "{5}","{6}", "{7}", "{8}")'.format(req["itemcode"], req["email"], redeemcode, req['giftname'] , req['industry'], req['company'], req['points'], req['img'], req['description']))
+        conn.commit()
+    return "done"
+
+@app.route("/getSpecificRedeem/", methods=["POST"])
+def getSpecificRedeem():
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM redeem_history WHERE redeemcode = "{0}"'.format(req['redeemcode']))
+        result = cursor.fetchall()
+        # testing
+        print(result)
+        
+    return jsonify(result=result)
+
+# Use Redeem Item
+@app.route("/useRedeemItem/", methods=["POST"])
+def usedRedeemItem(): 
+    req = request.get_json()
+
+    cur_date = datetime.now()
+    original_text = str(req["email"]) + str(cur_date)
+    hashed_text = hashlib.sha1(original_text.encode('utf-8')).hexdigest()
+
+    # Sending emails
+    try:
+        text = "Hi,\n The code for {1} is {0}\n Thank you." .format(req["redeemcode"], req["giftname"])
+
+        server.send(to = req["email"], subject = "Code for Redeemed item", contents = text)
+    except Exception as e:
+        print(e)
+        
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE redeem_history SET used = 1 WHERE redeemcode = "{0}"'.format(req["redeemcode"]))
+        conn.commit()
+    return "Done"
+
+@app.route("/getUnusedRedeemItems/", methods=["POST"])
+def getAllUnusedRedeemItem():
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM redeem_history WHERE email = "{0}" AND used = 0'.format(req['email']))
+        result = cursor.fetchall()
+        # testing
+        print(result)
+        
+    return jsonify(result=result)
+
+@app.route("/getUsedRedeemItems/", methods=["POST"])
+def getAllUsedRedeemItem():
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM redeem_history WHERE email = "{0}" AND used = 1'.format(req['email']))
+        result = cursor.fetchall()
+        # testing
+        print(result)
+        
+    return jsonify(result=result)
+
 @app.route("/getUserPoints/", methods=["POST"])
 def getUserPoints():
     user = request.get_json()
-    cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
-    result = cursor.fetchall()
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT points FROM users WHERE email = "{0}"'.format(user["email"]))
+        result = cursor.fetchall()
     print(result)
     return jsonify(result=result)
 
 @app.route("/updateUserPoints/", methods=["POST"])
 def updateUserPoints():
     user = request.get_json()
-    cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
-    conn.commit()
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
+        conn.commit()
     return 'Done'
 
 # Staff App
@@ -374,9 +490,11 @@ def getStaffSpecificUser():
 
 @app.route("/getStaffAllUsersCount/", methods=["POST"])
 def getStaffAllUsersCount():
+    req = request.get_json()
+    
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT COUNT(*) FROM staff_users')
+        cursor.execute('SELECT COUNT(*) FROM staff_users WHERE username LIKE "%{0}%"'.format(req["query"]))
         result = cursor.fetchall()
     return jsonify(result=result)
 
@@ -388,7 +506,7 @@ def getStaffAllUser():
     
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
-        cursor.execute('SELECT * FROM staff_users LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"]))
+        cursor.execute('SELECT * FROM staff_users WHERE username LIKE "%{2}%" LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"], req["query"]))
         result = cursor.fetchall()
         
     return jsonify(result=result)
@@ -424,12 +542,26 @@ def updateStaffUserPassword():
         
     return "Done"
 
-@app.route("/getStaffBins/", methods=["POST"])
-def getStaffBins():
+@app.route("/getStaffAllBins/", methods=["POST"])
+def getStaffAllBins():
     conn = mysql.connect()  # reconnecting mysql
     with conn.cursor() as cursor:
         cursor.execute('SELECT * FROM bins')
         result = cursor.fetchall()
+        
+    return jsonify(result=result)
+
+@app.route("/getStaffBins/", methods=["POST"])
+def getStaffBins():
+    req = request.get_json()
+    
+    offset = req["page"]*req["itemsPerPage"]
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM bins WHERE location LIKE "%{2}%" LIMIT {1} OFFSET {0}'.format(offset, req["itemsPerPage"], req["query"]))
+        result = cursor.fetchall()
+        
     return jsonify(result=result)
 
 @app.route("/updateStaffBins/", methods=["POST"])
@@ -442,6 +574,16 @@ def updateStaffBins():
         conn.commit()
         
     return "Done"
+
+@app.route("/getStaffAllBinsCount/", methods=["POST"])
+def getStaffAllBinsCount():
+    req = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT COUNT(*) FROM bins WHERE location LIKE "%{0}%"'.format(req["query"]))
+        result = cursor.fetchall()
+    return jsonify(result=result)
 
     
 if __name__ == "__main__":
