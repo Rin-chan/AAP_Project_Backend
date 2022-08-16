@@ -1,11 +1,12 @@
 import cv2
 import time
 
-camera = cv2.VideoCapture(0)
+camera = "rtsp://49.245.83.80:5000/" 
 
 def gen_frames():  
     global camera
-    camera = cv2.VideoCapture(0)
+    # camera = cv2.VideoCapture(0)
+    camera = "rtsp://49.245.83.80:5000/" 
 
     while True:
         success, frame = camera.read()  # read the camera frame
