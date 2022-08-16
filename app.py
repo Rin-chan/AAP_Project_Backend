@@ -8,6 +8,7 @@ from Forms import ResetForm
 import yagmail
 import hashlib
 import logging
+import json
 
 from camera import gen_frames, capturePhoto, closeCamera
 from qr_generator import create_qr_code
@@ -22,10 +23,13 @@ def unique_id(size):
     chars = list(set(string.ascii_uppercase + string.digits).difference('LIO01'))
     return ''.join(random.choices(chars, k=size))
 
+with open('settings.json', 'r') as f:
+    settings = json.load(f)
+
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
-flaskServer = "49.245.83.80:5000"
+flaskServer = settings['flaskServer']
 
 app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
