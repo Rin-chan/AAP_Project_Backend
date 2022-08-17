@@ -39,6 +39,29 @@ def classify_eWaste_j(filename):
 
     return predictions
 
+# BASE64
+def classify_eWaste_s_base64(image_base64):
+
+    base64_decoded = base64.b64decode(image_base64)
+    image = Image.open(io.BytesIO(base64_decoded))
+    img = image.resize((128, 128))
+    img_array = img_to_array(img)
+    img_array = tf.expand_dims(img_array, 0)
+    predictions = model_s(img_array)
+
+    return predictions
+
+def classify_eWaste_j_base64(image_base64):
+
+    # Convert base64 image to NumPy array
+    base64_decoded = base64.b64decode(image_base64)
+    image = Image.open(io.BytesIO(base64_decoded))
+    img = image.resize((150, 150))
+    img_array = img_to_array(img)
+    img_array = tf.expand_dims(img_array, 0)
+    predictions = model_j(img_array)
+
+    return predictions
     
 def reformat_predictions(predictions, classlisttype):
     
