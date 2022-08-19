@@ -169,12 +169,6 @@ def imgClassification(filename):
 
     class_j, percent_j = reformat_predictions(pred_j, "j")
     class_s, percent_s = reformat_predictions(pred_S, "s")
-
-    print(class_j)
-    print(percent_j)
-    print(class_s)
-    print(percent_s)
-    print(class_j)
     
     if percent_s > percent_j:
         if class_s == 'others':
