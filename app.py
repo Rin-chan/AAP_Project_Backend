@@ -8,12 +8,17 @@ from Forms import ResetForm
 import yagmail
 import hashlib
 import logging
+import json
+
+# Using ORS service for distance
+import openrouteservice
+from openrouteservice.directions import directions
 
 from camera import gen_frames, capturePhoto, closeCamera
 from qr_generator import create_qr_code
 
 from models.faceVerification.siamese import generateDiss
-from models.imgClassification.imgClassification import classify_eWaste_j, classify_eWaste_s, reformat_predictions
+from models.imgClassification.imgClassification import classify_eWaste_j, classify_eWaste_s, reformat_predictions, classify_eWaste_j_base64, classify_eWaste_s_base64
 from models.binRouting.routing import getPath
 
 import string
@@ -22,10 +27,18 @@ def unique_id(size):
     chars = list(set(string.ascii_uppercase + string.digits).difference('LIO01'))
     return ''.join(random.choices(chars, k=size))
 
+with open('settings.json', 'r') as f:
+    settings = json.load(f)
+
 email_username = "appdevproto123@gmail.com"
 email_password = "hocbwonzwnxplmlo"
 server = yagmail.SMTP(email_username,email_password)
-flaskServer = "49.245.83.80:5000"
+flaskServer = settings['flaskServer']
+
+with open('secrets.json', 'r') as f:
+    apiKey = json.load(f)
+
+client = openrouteservice.Client(key=apiKey["ORSKey"])
 
 app = Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
@@ -456,6 +469,70 @@ def updateUserPoints():
         cursor.execute('UPDATE users SET points = "{1}" WHERE email = "{0}"'.format(user["email"], user["points"]))
         conn.commit()
     return 'Done'
+
+@app.route("/predictItemApp/", methods=["POST"])
+def predictItemApp():
+    image = request.get_json()
+    
+    final_result = ""
+
+    pred_j = classify_eWaste_j_base64(image["image"])
+    pred_S = classify_eWaste_s_base64(image["image"])
+
+    class_j, percent_j = reformat_predictions(pred_j, "j")
+    class_s, percent_s = reformat_predictions(pred_S, "s")
+    
+    if percent_s > percent_j:
+        if class_s == 'others':
+            if (percent_j * 100) <= 50.0:
+                final_result = "non_regulated"
+            else:
+                final_result = class_j
+    else:
+        if class_j == 'others':
+            if (percent_s * 100) <= 50.0:
+                final_result = "non_regulated"
+            else:
+                final_result = class_s
+    
+    return jsonify(prediction=final_result)
+
+@app.route("/nearestBin/", methods=["POST"])
+def nearestBin():
+    result_coords = []
+    start = request.get_json()
+    
+    conn = mysql.connect()  # reconnecting mysql
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM bins')
+        result = cursor.fetchall()
+    
+    result_coords.append((start["longitude"], start["latitude"]))
+    for i in result:
+        result_coords.append((i[4], i[5]))
+        
+    routes = openrouteservice.distance_matrix.distance_matrix(client, result_coords, metrics=['distance'])
+    routes_json = json.dumps(routes) # Convert to Json
+    decoded_routes_json = json.loads(routes_json) # Read the Json
+    
+    coords = [result_coords[0]]
+    chosen_dist = 0
+    for i in range(len(decoded_routes_json["distances"][0])):
+        if i == 0:
+            continue
+        
+        if chosen_dist == 0:
+            coords = [result_coords[0], result_coords[i]]
+            chosen_dist = decoded_routes_json["distances"][0][i]
+            continue
+        
+        if decoded_routes_json["distances"][0][i] < chosen_dist:
+            coords = [result_coords[0], result_coords[i]]
+            chosen_dist = decoded_routes_json["distances"][0][i]
+            continue
+    
+    return jsonify(coords=coords)
+
 
 # Staff App
 @app.route("/addStaffUser/", methods=["POST"])
