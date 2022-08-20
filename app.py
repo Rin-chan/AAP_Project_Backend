@@ -189,12 +189,16 @@ def imgClassification(filename):
                 final_result = "non_regulated"
             else:
                 final_result = class_j
+        else:
+            final_result = class_s
     else:
         if class_j == 'others':
             if (percent_s * 100) <= 50.0:
                 final_result = "non_regulated"
             else:
                 final_result = class_s
+        else:
+            final_result = class_j
     print("final result =" + final_result)
     
     return render_template('ai_Results.html', prediction=final_result)

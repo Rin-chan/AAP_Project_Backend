@@ -6,7 +6,6 @@ camera = cv2.VideoCapture(0)
 
 def gen_frames():  
     global camera
-    # camera = cv2.VideoCapture(0)
     camera = cv2.VideoCapture(0)
 
     while True:

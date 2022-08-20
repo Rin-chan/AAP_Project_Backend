@@ -86,6 +86,5 @@ def reformat_predictions(predictions, classlisttype):
             print("%s: %.2f" %(class_names[count],float(tensor) * 100))
             count += 1
 
-
     return highest_class, highest_percent
 
